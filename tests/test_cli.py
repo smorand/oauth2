@@ -4,20 +4,27 @@ from __future__ import annotations
 
 from typer.testing import CliRunner
 
-from src.cli import app
+from cli import app
 
 runner = CliRunner()
 
 
-def test_hello_default(sample_name: str) -> None:
-    """Test hello command with default name."""
-    result = runner.invoke(app, ["hello"])
+def test_serve_help() -> None:
+    """Test serve command shows help."""
+    result = runner.invoke(app, ["serve", "--help"])
     assert result.exit_code == 0
-    assert "Hello, World!" in result.stdout
+    assert "Start the OAuth2 authorization server" in result.stdout
 
 
-def test_hello_with_name(sample_name: str) -> None:
-    """Test hello command with custom name."""
-    result = runner.invoke(app, ["hello", "--name", sample_name])
+def test_generate_keys_help() -> None:
+    """Test generate-keys command shows help."""
+    result = runner.invoke(app, ["generate-keys", "--help"])
     assert result.exit_code == 0
-    assert f"Hello, {sample_name}!" in result.stdout
+    assert "Generate RSA key pair" in result.stdout
+
+
+def test_create_admin_help() -> None:
+    """Test create-admin command shows help."""
+    result = runner.invoke(app, ["create-admin", "--help"])
+    assert result.exit_code == 0
+    assert "Create an admin user" in result.stdout
