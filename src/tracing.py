@@ -6,7 +6,7 @@ import json
 import logging
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,13 +33,15 @@ class JSONLFileExporter(SpanExporter):
         with self._path.open("a") as f:
             for span in spans:
                 record = {
-                    "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                    "timestamp": datetime.now(tz=UTC).isoformat(),
                     "trace_id": format(span.context.trace_id, "032x"),
                     "span_id": format(span.context.span_id, "016x"),
                     "name": span.name,
                     "status": span.status.status_code.name,
                     "attributes": dict(span.attributes) if span.attributes else {},
-                    "duration_ms": (span.end_time - span.start_time) / 1_000_000 if span.end_time and span.start_time else 0,
+                    "duration_ms": (span.end_time - span.start_time) / 1_000_000
+                    if span.end_time and span.start_time
+                    else 0,
                 }
                 f.write(json.dumps(record) + "\n")
         return SpanExportResult.SUCCESS
@@ -68,7 +70,7 @@ def configure_tracing(service_name: str = "oauth2", trace_file: Path | None = No
 def trace_span(
     name: str,
     attributes: dict[str, Any] | None = None,
-) -> Generator[Span, None, None]:
+) -> Generator[Span]:
     """Create a traced span with optional attributes."""
     tracer = trace.get_tracer("oauth2")
     with tracer.start_as_current_span(name) as span:

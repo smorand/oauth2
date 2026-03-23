@@ -66,8 +66,9 @@ def create_admin(
     """Create an admin user for initial setup."""
     import asyncio
 
-    from config import Settings
     from services.bootstrap import create_admin_user
+
+    from config import Settings
 
     setup_logging()
     settings = Settings()
