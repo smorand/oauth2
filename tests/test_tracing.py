@@ -102,12 +102,11 @@ class TestTraceSpan:
 
     def test_trace_span_with_attributes(self) -> None:
         configure_tracing(service_name="test")
-        with trace_span("test-op", attributes={"key": "val"}) as span:
+        with trace_span("test-op", attributes={"key": "val"}):
             pass
         # Should complete without error
 
     def test_trace_span_with_exception(self) -> None:
         configure_tracing(service_name="test")
-        with pytest.raises(ValueError, match="boom"):
-            with trace_span("failing-op"):
-                raise ValueError("boom")
+        with pytest.raises(ValueError, match="boom"), trace_span("failing-op"):
+            raise ValueError("boom")

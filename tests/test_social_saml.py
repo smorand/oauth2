@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import base64
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -13,7 +12,7 @@ import pytest
 
 from config import Settings
 from models.saml import SAMLIdPConfig, SAMLIdPStatus
-from models.user import SocialAccount, SocialProvider, User
+from models.user import User
 from services.audit_service import AuditService
 from services.saml_service import SAMLError, SAMLService
 from services.social_service import SocialLoginError, SocialService
@@ -167,9 +166,7 @@ class TestSocialService:
 
         mock_email_resp = MagicMock(spec=httpx.Response)
         mock_email_resp.status_code = 200
-        mock_email_resp.json.return_value = [
-            {"email": "ghuser@test.com", "primary": True, "verified": True}
-        ]
+        mock_email_resp.json.return_value = [{"email": "ghuser@test.com", "primary": True, "verified": True}]
 
         with patch("services.social_service.httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
@@ -241,9 +238,7 @@ class TestSocialService:
 
         mock_email_resp = MagicMock(spec=httpx.Response)
         mock_email_resp.status_code = 200
-        mock_email_resp.json.return_value = [
-            {"email": "unverified@test.com", "primary": True, "verified": False}
-        ]
+        mock_email_resp.json.return_value = [{"email": "unverified@test.com", "primary": True, "verified": False}]
 
         with patch("services.social_service.httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
@@ -466,9 +461,7 @@ class TestSocialService:
 
 
 class TestSAMLService:
-    async def test_get_active_idps(
-        self, saml_service: SAMLService, initialized_storage: JsonStorageBackend
-    ) -> None:
+    async def test_get_active_idps(self, saml_service: SAMLService, initialized_storage: JsonStorageBackend) -> None:
         await initialized_storage.create_saml_idp(
             SAMLIdPConfig(
                 name="Active IdP",
@@ -491,9 +484,7 @@ class TestSAMLService:
         assert len(active) == 1
         assert active[0].name == "Active IdP"
 
-    async def test_get_idp(
-        self, saml_service: SAMLService, initialized_storage: JsonStorageBackend
-    ) -> None:
+    async def test_get_idp(self, saml_service: SAMLService, initialized_storage: JsonStorageBackend) -> None:
         idp = await initialized_storage.create_saml_idp(
             SAMLIdPConfig(
                 name="Test IdP",
@@ -536,7 +527,7 @@ class TestSAMLService:
     async def test_handle_saml_response_unknown_idp(self, saml_service: SAMLService) -> None:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
-            "<samlp:Status><samlp:StatusCode Value=\"urn:oasis:names:tc:SAML:2.0:status:Success\"/></samlp:Status>"
+            '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
             "<saml:Issuer>https://unknown-idp.com</saml:Issuer>"
             "</samlp:Response>"
         )
@@ -547,7 +538,7 @@ class TestSAMLService:
     async def test_handle_saml_response_failed_status(self, saml_service: SAMLService) -> None:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
-            "<samlp:Status><samlp:StatusCode Value=\"urn:oasis:names:tc:SAML:2.0:status:Requester\"/></samlp:Status>"
+            '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester"/></samlp:Status>'
             "<saml:Issuer>https://idp.test.com</saml:Issuer>"
             "</samlp:Response>"
         )
@@ -572,16 +563,16 @@ class TestSAMLService:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
             '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
-            '<saml:Assertion>'
-            '<saml:Issuer>https://idp.success.com</saml:Issuer>'
+            "<saml:Assertion>"
+            "<saml:Issuer>https://idp.success.com</saml:Issuer>"
             f'<saml:Conditions NotBefore="{not_before}" NotOnOrAfter="{not_after}"/>'
-            '<saml:Subject><saml:NameID>samluser@test.com</saml:NameID></saml:Subject>'
-            '<saml:AttributeStatement>'
+            "<saml:Subject><saml:NameID>samluser@test.com</saml:NameID></saml:Subject>"
+            "<saml:AttributeStatement>"
             '<saml:Attribute Name="email"><saml:AttributeValue>samluser@test.com</saml:AttributeValue></saml:Attribute>'
             '<saml:Attribute Name="name"><saml:AttributeValue>SAML User</saml:AttributeValue></saml:Attribute>'
-            '</saml:AttributeStatement>'
-            '</saml:Assertion>'
-            '</samlp:Response>'
+            "</saml:AttributeStatement>"
+            "</saml:Assertion>"
+            "</samlp:Response>"
         )
         b64 = base64.b64encode(xml.encode()).decode()
         user = await saml_service.handle_saml_response(b64, "relay")
@@ -601,8 +592,8 @@ class TestSAMLService:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
             '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
-            '<saml:Issuer>https://idp.noassert.com</saml:Issuer>'
-            '</samlp:Response>'
+            "<saml:Issuer>https://idp.noassert.com</saml:Issuer>"
+            "</samlp:Response>"
         )
         b64 = base64.b64encode(xml.encode()).decode()
         with pytest.raises(SAMLError, match="missing Assertion"):
@@ -624,12 +615,12 @@ class TestSAMLService:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
             '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
-            '<saml:Assertion>'
-            '<saml:Issuer>https://idp.future.com</saml:Issuer>'
+            "<saml:Assertion>"
+            "<saml:Issuer>https://idp.future.com</saml:Issuer>"
             f'<saml:Conditions NotBefore="{future}" NotOnOrAfter="{far_future}"/>'
-            '<saml:Subject><saml:NameID>user@test.com</saml:NameID></saml:Subject>'
-            '</saml:Assertion>'
-            '</samlp:Response>'
+            "<saml:Subject><saml:NameID>user@test.com</saml:NameID></saml:Subject>"
+            "</saml:Assertion>"
+            "</samlp:Response>"
         )
         b64 = base64.b64encode(xml.encode()).decode()
         with pytest.raises(SAMLError, match="not yet valid"):
@@ -652,12 +643,12 @@ class TestSAMLService:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
             '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
-            '<saml:Assertion>'
-            '<saml:Issuer>https://idp.nonameid.com</saml:Issuer>'
+            "<saml:Assertion>"
+            "<saml:Issuer>https://idp.nonameid.com</saml:Issuer>"
             f'<saml:Conditions NotBefore="{not_before}" NotOnOrAfter="{not_after}"/>'
-            '<saml:Subject></saml:Subject>'
-            '</saml:Assertion>'
-            '</samlp:Response>'
+            "<saml:Subject></saml:Subject>"
+            "</saml:Assertion>"
+            "</samlp:Response>"
         )
         b64 = base64.b64encode(xml.encode()).decode()
         with pytest.raises(SAMLError, match="missing NameID"):
@@ -681,15 +672,15 @@ class TestSAMLService:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
             '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
-            '<saml:Assertion>'
-            '<saml:Issuer>https://idp.return.com</saml:Issuer>'
+            "<saml:Assertion>"
+            "<saml:Issuer>https://idp.return.com</saml:Issuer>"
             f'<saml:Conditions NotBefore="{not_before}" NotOnOrAfter="{not_after}"/>'
-            '<saml:Subject><saml:NameID>returning@test.com</saml:NameID></saml:Subject>'
-            '<saml:AttributeStatement>'
+            "<saml:Subject><saml:NameID>returning@test.com</saml:NameID></saml:Subject>"
+            "<saml:AttributeStatement>"
             '<saml:Attribute Name="email"><saml:AttributeValue>returning@test.com</saml:AttributeValue></saml:Attribute>'
-            '</saml:AttributeStatement>'
-            '</saml:Assertion>'
-            '</samlp:Response>'
+            "</saml:AttributeStatement>"
+            "</saml:Assertion>"
+            "</samlp:Response>"
         )
         b64 = base64.b64encode(xml.encode()).decode()
         user1 = await saml_service.handle_saml_response(b64, "relay")
@@ -719,15 +710,15 @@ class TestSAMLService:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
             '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
-            '<saml:Assertion>'
-            '<saml:Issuer>https://idp.link.com</saml:Issuer>'
+            "<saml:Assertion>"
+            "<saml:Issuer>https://idp.link.com</saml:Issuer>"
             f'<saml:Conditions NotBefore="{not_before}" NotOnOrAfter="{not_after}"/>'
-            '<saml:Subject><saml:NameID>linked-saml@test.com</saml:NameID></saml:Subject>'
-            '<saml:AttributeStatement>'
+            "<saml:Subject><saml:NameID>linked-saml@test.com</saml:NameID></saml:Subject>"
+            "<saml:AttributeStatement>"
             '<saml:Attribute Name="email"><saml:AttributeValue>linked-saml@test.com</saml:AttributeValue></saml:Attribute>'
-            '</saml:AttributeStatement>'
-            '</saml:Assertion>'
-            '</samlp:Response>'
+            "</saml:AttributeStatement>"
+            "</saml:Assertion>"
+            "</samlp:Response>"
         )
         b64 = base64.b64encode(xml.encode()).decode()
         result = await saml_service.handle_saml_response(b64, "relay")
@@ -748,12 +739,12 @@ class TestSAMLService:
         xml = (
             '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">'
             '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
-            '<saml:Assertion>'
-            '<saml:Issuer>https://idp.expired.com</saml:Issuer>'
+            "<saml:Assertion>"
+            "<saml:Issuer>https://idp.expired.com</saml:Issuer>"
             f'<saml:Conditions NotOnOrAfter="{past}"/>'
-            '<saml:Subject><saml:NameID>user@test.com</saml:NameID></saml:Subject>'
-            '</saml:Assertion>'
-            '</samlp:Response>'
+            "<saml:Subject><saml:NameID>user@test.com</saml:NameID></saml:Subject>"
+            "</saml:Assertion>"
+            "</samlp:Response>"
         )
         b64 = base64.b64encode(xml.encode()).decode()
         with pytest.raises(SAMLError, match="expired"):

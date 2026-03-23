@@ -22,7 +22,6 @@ from crypto.password import (
 )
 from crypto.pkce import compute_code_challenge, verify_code_challenge
 
-
 # ── KeyManager ──
 
 
@@ -96,9 +95,7 @@ class TestJWTHandler:
         assert "jti" in claims
 
     def test_create_access_token_with_extra_claims(self, jwt_handler: JWTHandler) -> None:
-        token = jwt_handler.create_access_token(
-            sub="user-1", scope="openid", extra_claims={"custom": "value"}
-        )
+        token = jwt_handler.create_access_token(sub="user-1", scope="openid", extra_claims={"custom": "value"})
         claims = jwt_handler.decode_token(token)
         assert claims["custom"] == "value"
 
@@ -115,9 +112,7 @@ class TestJWTHandler:
         assert "nonce" not in claims
 
     def test_create_id_token_with_extra_claims(self, jwt_handler: JWTHandler) -> None:
-        token = jwt_handler.create_id_token(
-            sub="user-1", audience="client-1", extra_claims={"email": "a@b.com"}
-        )
+        token = jwt_handler.create_id_token(sub="user-1", audience="client-1", extra_claims={"email": "a@b.com"})
         claims = jwt_handler.decode_token(token, audience="client-1")
         assert claims["email"] == "a@b.com"
 

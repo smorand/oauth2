@@ -20,7 +20,6 @@ from config import Settings
 from crypto.password import hash_password
 from dependencies import AppDependencies
 from models.user import User, UserRole
-from storage.json_backend import JsonStorageBackend
 
 
 def _create_test_app(settings: Settings) -> tuple[Any, AppDependencies]:
@@ -84,40 +83,65 @@ def _create_test_app(settings: Settings) -> tuple[Any, AppDependencies]:
             try:
                 client = await deps.client_service.authenticate_client(client_id, client_secret)
             except ClientServiceError as exc:
-                return JSONResponse(status_code=exc.code, content=ErrorResponse(error="invalid_client", error_description=str(exc)).model_dump())
+                return JSONResponse(
+                    status_code=exc.code,
+                    content=ErrorResponse(error="invalid_client", error_description=str(exc)).model_dump(),
+                )
             try:
                 auth_code = await deps.auth_code_service.exchange_code(code, client_id, redirect_uri, code_verifier)
             except AuthCodeError as exc:
-                return JSONResponse(status_code=exc.code, content=ErrorResponse(error=exc.error_code, error_description=str(exc)).model_dump())
+                return JSONResponse(
+                    status_code=exc.code,
+                    content=ErrorResponse(error=exc.error_code, error_description=str(exc)).model_dump(),
+                )
             user = await deps.user_service.get_user(auth_code.user_id)
             if not user:
                 return JSONResponse(status_code=400, content=ErrorResponse(error="invalid_grant").model_dump())
-            tokens = await deps.token_service.issue_tokens(user=user, client=client, scope=auth_code.scope, nonce=auth_code.nonce)
+            tokens = await deps.token_service.issue_tokens(
+                user=user, client=client, scope=auth_code.scope, nonce=auth_code.nonce
+            )
             return JSONResponse(content=tokens)
         if grant_type == "client_credentials":
             try:
                 client = await deps.client_service.authenticate_client(client_id, client_secret)
             except ClientServiceError as exc:
-                return JSONResponse(status_code=exc.code, content=ErrorResponse(error="invalid_client", error_description=str(exc)).model_dump())
+                return JSONResponse(
+                    status_code=exc.code,
+                    content=ErrorResponse(error="invalid_client", error_description=str(exc)).model_dump(),
+                )
             if client.type.value != "service":
                 return JSONResponse(status_code=400, content=ErrorResponse(error="unauthorized_client").model_dump())
             try:
                 scopes = await deps.scope_service.validate_scopes(scope, client.allowed_scopes)
             except ScopeServiceError as exc:
-                return JSONResponse(status_code=400, content=ErrorResponse(error="invalid_scope", error_description=str(exc)).model_dump())
+                return JSONResponse(
+                    status_code=400,
+                    content=ErrorResponse(error="invalid_scope", error_description=str(exc)).model_dump(),
+                )
             tokens = await deps.token_service.issue_client_credentials_token(client, " ".join(scopes))
             return JSONResponse(content=tokens)
         if grant_type == "refresh_token":
             try:
                 await deps.client_service.authenticate_client(client_id, client_secret)
             except ClientServiceError as exc:
-                return JSONResponse(status_code=exc.code, content=ErrorResponse(error="invalid_client", error_description=str(exc)).model_dump())
+                return JSONResponse(
+                    status_code=exc.code,
+                    content=ErrorResponse(error="invalid_client", error_description=str(exc)).model_dump(),
+                )
             try:
                 tokens = await deps.token_service.refresh_tokens(refresh_token, client_id)
             except TokenServiceError as exc:
-                return JSONResponse(status_code=exc.code, content=ErrorResponse(error=exc.error_code, error_description=str(exc)).model_dump())
+                return JSONResponse(
+                    status_code=exc.code,
+                    content=ErrorResponse(error=exc.error_code, error_description=str(exc)).model_dump(),
+                )
             return JSONResponse(content=tokens)
-        return JSONResponse(status_code=400, content=ErrorResponse(error="unsupported_grant_type", error_description=f"Grant type '{grant_type}' is not supported").model_dump())
+        return JSONResponse(
+            status_code=400,
+            content=ErrorResponse(
+                error="unsupported_grant_type", error_description=f"Grant type '{grant_type}' is not supported"
+            ).model_dump(),
+        )
 
     @oauth.post("/introspect", response_model=None)
     async def introspect_endpoint(
@@ -160,9 +184,13 @@ def _create_test_app(settings: Settings) -> tuple[Any, AppDependencies]:
         try:
             scopes = await deps.scope_service.validate_scopes(scope or "openid", client.allowed_scopes)
         except ScopeServiceError as exc:
-            return JSONResponse(status_code=400, content=ErrorResponse(error="invalid_scope", error_description=str(exc)).model_dump())
+            return JSONResponse(
+                status_code=400, content=ErrorResponse(error="invalid_scope", error_description=str(exc)).model_dump()
+            )
         verification_uri = f"{settings.issuer_url}/device"
-        result = await deps.device_code_service.create_device_code(client_id=client_id, scope=" ".join(scopes), verification_uri=verification_uri)
+        result = await deps.device_code_service.create_device_code(
+            client_id=client_id, scope=" ".join(scopes), verification_uri=verification_uri
+        )
         return JSONResponse(content=result)
 
     app.include_router(oauth)
@@ -325,9 +353,7 @@ class TestOIDCRoutes:
     async def test_userinfo_no_openid_scope(self, client: httpx.AsyncClient, deps: AppDependencies) -> None:
         reg = await _register_user(client, "noopenid@test.com", "StrongPass1")
         user_id = reg["id"]
-        token = deps.jwt_handler.create_access_token(
-            sub=user_id, scope="profile", audience=deps.settings.issuer_url
-        )
+        token = deps.jwt_handler.create_access_token(sub=user_id, scope="profile", audience=deps.settings.issuer_url)
         resp = await client.get("/oidc/userinfo", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 403
 
@@ -613,16 +639,12 @@ class TestAdminRoutes:
         admin_token = await _create_admin_and_token(deps)
         reg = await _register_user(client, "locked@test.com", "StrongPass1")
         user_id = reg["id"]
-        resp = await client.post(
-            f"/admin/users/{user_id}/unlock", headers={"Authorization": f"Bearer {admin_token}"}
-        )
+        resp = await client.post(f"/admin/users/{user_id}/unlock", headers={"Authorization": f"Bearer {admin_token}"})
         assert resp.status_code == 200
 
     async def test_admin_unlock_user_not_found(self, client: httpx.AsyncClient, deps: AppDependencies) -> None:
         admin_token = await _create_admin_and_token(deps)
-        resp = await client.post(
-            "/admin/users/missing/unlock", headers={"Authorization": f"Bearer {admin_token}"}
-        )
+        resp = await client.post("/admin/users/missing/unlock", headers={"Authorization": f"Bearer {admin_token}"})
         assert resp.status_code == 404
 
     async def test_admin_scopes_crud(self, client: httpx.AsyncClient, deps: AppDependencies) -> None:
@@ -676,15 +698,11 @@ class TestAuthConsents:
     async def test_list_consents_valid_token(self, client: httpx.AsyncClient, deps: AppDependencies) -> None:
         reg = await _register_user(client, "consent@test.com", "StrongPass1")
         user_id = reg["id"]
-        token = deps.jwt_handler.create_access_token(
-            sub=user_id, scope="openid", audience=deps.settings.issuer_url
-        )
+        token = deps.jwt_handler.create_access_token(sub=user_id, scope="openid", audience=deps.settings.issuer_url)
         resp = await client.get("/auth/consents", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 200
 
-    async def test_list_consents_with_granted_consent(
-        self, client: httpx.AsyncClient, deps: AppDependencies
-    ) -> None:
+    async def test_list_consents_with_granted_consent(self, client: httpx.AsyncClient, deps: AppDependencies) -> None:
         """Test listing consents when user has granted consent to a client."""
         admin_token = await _create_admin_and_token(deps)
         reg = await _register_user(client, "consentlist@test.com", "StrongPass1")
@@ -704,9 +722,7 @@ class TestAuthConsents:
         client_id = resp.json()["client_id"]
         # Grant consent
         await deps.consent_service.grant_consent(user_id, client_id, ["openid"])
-        token = deps.jwt_handler.create_access_token(
-            sub=user_id, scope="openid", audience=deps.settings.issuer_url
-        )
+        token = deps.jwt_handler.create_access_token(sub=user_id, scope="openid", audience=deps.settings.issuer_url)
         resp = await client.get("/auth/consents", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 200
         data = resp.json()
@@ -731,23 +747,15 @@ class TestAuthConsents:
         )
         client_id = resp.json()["client_id"]
         consent = await deps.consent_service.grant_consent(user_id, client_id, ["openid"])
-        token = deps.jwt_handler.create_access_token(
-            sub=user_id, scope="openid", audience=deps.settings.issuer_url
-        )
-        resp = await client.delete(
-            f"/auth/consents/{consent.id}", headers={"Authorization": f"Bearer {token}"}
-        )
+        token = deps.jwt_handler.create_access_token(sub=user_id, scope="openid", audience=deps.settings.issuer_url)
+        resp = await client.delete(f"/auth/consents/{consent.id}", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 204
 
     async def test_revoke_consent_not_found(self, client: httpx.AsyncClient, deps: AppDependencies) -> None:
         reg = await _register_user(client, "revokenf@test.com", "StrongPass1")
         user_id = reg["id"]
-        token = deps.jwt_handler.create_access_token(
-            sub=user_id, scope="openid", audience=deps.settings.issuer_url
-        )
-        resp = await client.delete(
-            "/auth/consents/nonexistent", headers={"Authorization": f"Bearer {token}"}
-        )
+        token = deps.jwt_handler.create_access_token(sub=user_id, scope="openid", audience=deps.settings.issuer_url)
+        resp = await client.delete("/auth/consents/nonexistent", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code in (400, 404)
 
 
@@ -787,9 +795,7 @@ class TestAdminAdditionalRoutes:
         admin_users = [u for u in users_resp.json()["items"] if u["role"] == "admin"]
         assert len(admin_users) == 1
         admin_id = admin_users[0]["id"]
-        resp = await client.delete(
-            f"/admin/users/{admin_id}", headers={"Authorization": f"Bearer {admin_token}"}
-        )
+        resp = await client.delete(f"/admin/users/{admin_id}", headers={"Authorization": f"Bearer {admin_token}"})
         assert resp.status_code == 409
 
     async def test_admin_scope_create_duplicate(self, client: httpx.AsyncClient, deps: AppDependencies) -> None:
@@ -817,9 +823,7 @@ class TestAdminAdditionalRoutes:
         """A regular user token should get 403 on admin endpoints."""
         reg = await _register_user(client, "normie@test.com", "StrongPass1")
         user_id = reg["id"]
-        token = deps.jwt_handler.create_access_token(
-            sub=user_id, scope="openid", audience=deps.settings.issuer_url
-        )
+        token = deps.jwt_handler.create_access_token(sub=user_id, scope="openid", audience=deps.settings.issuer_url)
         resp = await client.get("/admin/clients", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 403
 

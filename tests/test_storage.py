@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
+from pathlib import Path
 
-import pytest
-
-from crypto.password import hash_token
-from models.base import generate_id, utc_now
+from models.base import utc_now
 from models.client import Client, ClientType
 from models.consent import Consent
 from models.saml import SAMLIdPConfig
 from models.scope import Scope
 from models.token import AuthorizationCode, DeviceCode, RefreshToken, TokenRevocationEntry
-from models.user import SocialAccount, SocialProvider, User, UserRole, UserStatus
+from models.user import SocialAccount, SocialProvider, User
 from storage.json_backend import JsonStorageBackend
 
 
@@ -184,7 +182,7 @@ class TestClientOperations:
                     grant_types=("authorization_code",),
                 )
             )
-        clients, total = await initialized_storage.list_clients()
+        _clients, total = await initialized_storage.list_clients()
         assert total == 3
 
 
@@ -352,9 +350,7 @@ class TestConsentOperations:
 
     async def test_get_consents_for_user(self, initialized_storage: JsonStorageBackend) -> None:
         for i in range(3):
-            await initialized_storage.create_consent(
-                Consent(user_id="u4", client_id=f"c{i}", scopes=("openid",))
-            )
+            await initialized_storage.create_consent(Consent(user_id="u4", client_id=f"c{i}", scopes=("openid",)))
         consents = await initialized_storage.get_consents_for_user("u4")
         assert len(consents) == 3
 
@@ -406,7 +402,7 @@ class TestDeviceCodeOperations:
 class TestScopeOperations:
     async def test_create_and_get_scope(self, initialized_storage: JsonStorageBackend) -> None:
         scope = Scope(name="custom:read", description="Custom read access")
-        created = await initialized_storage.create_scope(scope)
+        await initialized_storage.create_scope(scope)
         fetched = await initialized_storage.get_scope("custom:read")
         assert fetched is not None
         assert fetched.description == "Custom read access"

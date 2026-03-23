@@ -10,9 +10,8 @@ import pytest
 from crypto.password import hash_token
 from crypto.pkce import compute_code_challenge
 from models.client import Client, ClientType
-from models.consent import Consent
-from models.token import AuthorizationCode, RefreshToken
-from models.user import User, UserRole, UserStatus
+from models.user import User, UserStatus
+from services.audit_service import AuditService
 from services.auth_code_service import AuthCodeError, AuthCodeService
 from services.client_service import ClientService, ClientServiceError
 from services.consent_service import ConsentService, ConsentServiceError
@@ -21,7 +20,6 @@ from services.scope_service import ScopeService, ScopeServiceError
 from services.token_service import TokenService, TokenServiceError
 from services.user_service import UserService, UserServiceError
 from storage.json_backend import JsonStorageBackend
-
 
 # ── UserService ──
 
@@ -112,11 +110,11 @@ class TestUserService:
             await user_service.unlock_user("nonexistent")
 
     async def test_list_users(self, user_service: UserService, test_user: User) -> None:
-        users, total = await user_service.list_users()
+        _users, total = await user_service.list_users()
         assert total >= 1
 
     async def test_search_users(self, user_service: UserService, test_user: User) -> None:
-        users, total = await user_service.search_users("test")
+        _users, total = await user_service.search_users("test")
         assert total >= 1
 
 
@@ -189,9 +187,7 @@ class TestClientService:
                 created_by=admin_user.id,
             )
 
-    async def test_service_client_cannot_use_auth_code(
-        self, client_service: ClientService, admin_user: User
-    ) -> None:
+    async def test_service_client_cannot_use_auth_code(self, client_service: ClientService, admin_user: User) -> None:
         with pytest.raises(ClientServiceError, match="cannot use authorization_code"):
             await client_service.create_client(
                 name="BadService",
@@ -226,9 +222,7 @@ class TestClientService:
                 created_by=admin_user.id,
             )
 
-    async def test_non_service_without_redirect_uris(
-        self, client_service: ClientService, admin_user: User
-    ) -> None:
+    async def test_non_service_without_redirect_uris(self, client_service: ClientService, admin_user: User) -> None:
         with pytest.raises(ClientServiceError, match="must have at least one redirect"):
             await client_service.create_client(
                 name="NoURI",
@@ -283,9 +277,7 @@ class TestClientService:
         with pytest.raises(ClientServiceError, match="deactivated"):
             await client_service.authenticate_client(client.id, "any")
 
-    async def test_update_client(
-        self, client_service: ClientService, test_client: tuple[Client, str]
-    ) -> None:
+    async def test_update_client(self, client_service: ClientService, test_client: tuple[Client, str]) -> None:
         client, _ = test_client
         updated = await client_service.update_client(client.id, name="New Name")
         assert updated.name == "New Name"
@@ -294,9 +286,7 @@ class TestClientService:
         with pytest.raises(ClientServiceError, match="Client not found"):
             await client_service.update_client("missing", name="X")
 
-    async def test_deactivate_client(
-        self, client_service: ClientService, test_client: tuple[Client, str]
-    ) -> None:
+    async def test_deactivate_client(self, client_service: ClientService, test_client: tuple[Client, str]) -> None:
         client, _ = test_client
         result = await client_service.deactivate_client(client.id)
         assert result.status.value == "deactivated"
@@ -305,9 +295,7 @@ class TestClientService:
         with pytest.raises(ClientServiceError, match="Client not found"):
             await client_service.deactivate_client("missing")
 
-    async def test_rotate_secret(
-        self, client_service: ClientService, test_client: tuple[Client, str]
-    ) -> None:
+    async def test_rotate_secret(self, client_service: ClientService, test_client: tuple[Client, str]) -> None:
         client, old_secret = test_client
         updated_client, new_secret = await client_service.rotate_secret(client.id)
         assert new_secret != old_secret
@@ -326,10 +314,8 @@ class TestClientService:
         with pytest.raises(ClientServiceError, match="Client not found"):
             await client_service.rotate_secret("missing")
 
-    async def test_list_clients(
-        self, client_service: ClientService, test_client: tuple[Client, str]
-    ) -> None:
-        clients, total = await client_service.list_clients()
+    async def test_list_clients(self, client_service: ClientService, test_client: tuple[Client, str]) -> None:
+        _clients, total = await client_service.list_clients()
         assert total >= 1
 
     async def test_redirect_uri_too_long(self, client_service: ClientService, admin_user: User) -> None:
@@ -393,9 +379,7 @@ class TestTokenService:
         assert "refresh_token" in new_tokens
         assert new_tokens["refresh_token"] != refresh_plain
 
-    async def test_refresh_tokens_invalid(
-        self, token_service: TokenService, test_client: tuple[Client, str]
-    ) -> None:
+    async def test_refresh_tokens_invalid(self, token_service: TokenService, test_client: tuple[Client, str]) -> None:
         client, _ = test_client
         with pytest.raises(TokenServiceError, match="Invalid refresh token"):
             await token_service.refresh_tokens("invalid-token", client.id)
@@ -433,9 +417,7 @@ class TestTokenService:
         assert result["active"] is True
         assert result["sub"] == test_user.id
 
-    async def test_introspect_invalid_token(
-        self, token_service: TokenService, test_client: tuple[Client, str]
-    ) -> None:
+    async def test_introspect_invalid_token(self, token_service: TokenService, test_client: tuple[Client, str]) -> None:
         client, _ = test_client
         result = await token_service.introspect("garbage", client.id)
         assert result["active"] is False
@@ -460,9 +442,7 @@ class TestTokenService:
         with pytest.raises(TokenServiceError, match="revoked"):
             await token_service.refresh_tokens(refresh, client.id)
 
-    async def test_revoke_unknown_token(
-        self, token_service: TokenService, test_client: tuple[Client, str]
-    ) -> None:
+    async def test_revoke_unknown_token(self, token_service: TokenService, test_client: tuple[Client, str]) -> None:
         client, _ = test_client
         # Should not raise
         await token_service.revoke("unknown-token", "", client.id)
@@ -538,7 +518,9 @@ class TestAuthCodeService:
             code_challenge=challenge,
         )
         with pytest.raises(AuthCodeError, match="Client mismatch"):
-            await auth_code_service.exchange_code(plain_code, "other-client", "http://localhost:3000/callback", verifier)
+            await auth_code_service.exchange_code(
+                plain_code, "other-client", "http://localhost:3000/callback", verifier
+            )
 
     async def test_exchange_wrong_redirect_uri(
         self,
@@ -739,9 +721,7 @@ class TestDeviceCodeService:
         assert dc.status == "approved"
         assert dc.user_id == test_user.id
 
-    async def test_poll_pending(
-        self, device_code_service: DeviceCodeService, test_client: tuple[Client, str]
-    ) -> None:
+    async def test_poll_pending(self, device_code_service: DeviceCodeService, test_client: tuple[Client, str]) -> None:
         client, _ = test_client
         result = await device_code_service.create_device_code(
             client_id=client.id,
@@ -793,8 +773,6 @@ class TestDeviceCodeService:
     ) -> None:
         from dataclasses import replace as dc_replace
 
-        from crypto.password import hash_token
-
         client, _ = test_client
         result = await device_code_service.create_device_code(
             client_id=client.id,
@@ -833,8 +811,6 @@ class TestDeviceCodeService:
         test_client: tuple[Client, str],
     ) -> None:
         from dataclasses import replace as dc_replace
-
-        from crypto.password import hash_token
 
         client, _ = test_client
         result = await device_code_service.create_device_code(
@@ -935,7 +911,7 @@ class TestScopeService:
 
 
 class TestAuditService:
-    def test_log_event(self, audit_service: "AuditService") -> None:
+    def test_log_event(self, audit_service: AuditService) -> None:
         import json
 
         audit_service.log_event("test_event", "actor1", "127.0.0.1", "success", {"key": "value"})

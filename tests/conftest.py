@@ -7,14 +7,10 @@ from pathlib import Path
 import pytest
 
 from config import Settings
-from crypto.keys import KeyManager
 from crypto.jwt_handler import JWTHandler
-from crypto.password import hash_password, hash_client_secret, hash_token
-from models.client import Client, ClientType
-from models.consent import Consent
-from models.scope import Scope
-from models.token import AuthorizationCode, RefreshToken
-from models.user import User, UserRole, UserStatus
+from crypto.keys import KeyManager
+from models.client import Client
+from models.user import User, UserRole
 from services.audit_service import AuditService
 from services.auth_code_service import AuthCodeService
 from services.client_service import ClientService
