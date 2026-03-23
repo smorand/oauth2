@@ -111,3 +111,9 @@ progress.md
 
 # NOTE: uv.lock is NOT ignored - it should be committed for reproducible builds
 # NOTE: pyproject.toml is NOT ignored - it's the project configuration
+
+# Application logs
+*.log
+logs/
+traces/
+data/
