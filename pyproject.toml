@@ -85,6 +85,9 @@ ignore = [
 "src/crypto/*.py" = ["TCH001", "TCH003"]
 "src/storage/*.py" = ["TCH001", "TCH003"]
 "src/services/*.py" = ["TCH001", "TCH003", "ARG002"]
+"src/routes/*.py" = ["TCH001", "TCH003", "ARG002", "B008"]
+"src/app.py" = ["TCH001", "TCH003", "PLC0415"]
+"src/dependencies.py" = ["TCH001", "TCH003"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
@@ -122,6 +125,10 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["bcrypt.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["routes.*"]
+warn_return_any = false
 
 # pytest
 [tool.pytest.ini_options]

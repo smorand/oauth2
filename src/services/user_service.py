@@ -111,7 +111,7 @@ class UserService:
                 user,
                 failed_login_attempts=0,
                 locked_until=None,
-                status=UserStatus.ACTIVE if user.status == UserStatus.LOCKED else user.status,
+                status=UserStatus.ACTIVE if user.status.value == UserStatus.LOCKED.value else user.status,
                 updated_at=datetime.now(tz=UTC),
             )
             await self._storage.update_user(user)

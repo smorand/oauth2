@@ -104,9 +104,9 @@ class JWTHandler:
             raise jwt.InvalidTokenError(msg) from exc
 
         public_key = private_key.public_key()
-        options: dict[str, Any] = {}
+        decode_options: dict[str, Any] = {}
         if not audience:
-            options["verify_aud"] = False
+            decode_options["verify_aud"] = False
 
         return jwt.decode(
             token,
@@ -114,7 +114,7 @@ class JWTHandler:
             algorithms=["RS256"],
             issuer=self._issuer,
             audience=audience if audience else None,
-            options=options,
+            options=decode_options,  # type: ignore[arg-type]
         )
 
     def extract_jti(self, token: str) -> str:
