@@ -47,9 +47,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Switch to non-root user
 USER appuser:appgroup
 
-EXPOSE 8080
+EXPOSE 8000
 
-# Override ENTRYPOINT for your project type:
-# CLI: ENTRYPOINT ["hello"]
-# API: ENTRYPOINT ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8080"]
-ENTRYPOINT ["hello"]
+ENTRYPOINT ["oauth2", "serve", "--host", "0.0.0.0", "--port", "8000"]

@@ -5,11 +5,15 @@
 
 services:
   app:
-    image: ${DOCKER_PREFIX:-}${PROJECT_NAME:-app}:${DOCKER_TAG:-latest}
+    image: ${DOCKER_PREFIX:-}${PROJECT_NAME:-oauth2}:${DOCKER_TAG:-latest}
     ports:
-      - "8080:8080"
+      - "8000:8000"
     restart: unless-stopped
-    # environment:
-    #   - ENV_VAR=value
-    # volumes:
-    #   - ./data:/data:ro
+    environment:
+      - OAUTH2_ISSUER_URL=http://localhost:8000
+      - OAUTH2_CSRF_SECRET=${OAUTH2_CSRF_SECRET:-change-me-in-production}
+      - OAUTH2_DEBUG=false
+    volumes:
+      - ./data:/app/data
+      - ./keys:/app/keys:ro
+      - ./logs:/app/logs
