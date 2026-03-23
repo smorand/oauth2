@@ -13,6 +13,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from config import Settings
 from dependencies import AppDependencies
 from logging_config import setup_logging
+from middleware.rate_limiter import RateLimitConfig, RateLimitMiddleware
+from middleware.security_headers import SecurityHeadersMiddleware
 from routes.admin import create_admin_router
 from routes.auth import create_auth_router
 from routes.federation import create_federation_router
@@ -50,6 +52,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     application.add_middleware(SessionMiddleware, secret_key=settings.csrf_secret)
+    application.add_middleware(SecurityHeadersMiddleware)
+    application.add_middleware(
+        RateLimitMiddleware,
+        config=RateLimitConfig(
+            token_per_minute=settings.rate_limit_token,
+            authorize_per_minute=settings.rate_limit_authorize,
+            login_per_minute=settings.rate_limit_login,
+            admin_per_minute=settings.rate_limit_admin,
+        ),
+    )
 
     application.state.deps = deps
     application.state.settings = settings

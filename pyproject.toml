@@ -86,6 +86,7 @@ ignore = [
 "src/storage/*.py" = ["TCH001", "TCH003"]
 "src/services/*.py" = ["TCH001", "TCH003", "ARG002", "PLR2004"]
 "src/routes/*.py" = ["TCH001", "TCH003", "ARG002", "B008"]
+"src/middleware/*.py" = ["TCH001", "TCH002", "TCH003"]
 "src/app.py" = ["TCH001", "TCH003", "PLC0415"]
 "src/dependencies.py" = ["TCH001", "TCH003"]
 
