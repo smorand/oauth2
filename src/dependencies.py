@@ -10,7 +10,9 @@ from services.auth_code_service import AuthCodeService
 from services.client_service import ClientService
 from services.consent_service import ConsentService
 from services.device_code_service import DeviceCodeService
+from services.saml_service import SAMLService
 from services.scope_service import ScopeService
+from services.social_service import SocialService
 from services.token_service import TokenService
 from services.user_service import UserService
 from storage.json_backend import JsonStorageBackend
@@ -27,8 +29,10 @@ class AppDependencies:
         "device_code_service",
         "jwt_handler",
         "key_manager",
+        "saml_service",
         "scope_service",
         "settings",
+        "social_service",
         "storage",
         "token_service",
         "user_service",
@@ -85,6 +89,23 @@ class AppDependencies:
         )
 
         self.scope_service = ScopeService(storage=self.storage)
+
+        self.social_service = SocialService(
+            storage=self.storage,
+            audit=self.audit,
+            google_client_id=settings.google_client_id,
+            google_client_secret=settings.google_client_secret,
+            google_redirect_uri=settings.google_redirect_uri,
+            github_client_id=settings.github_client_id,
+            github_client_secret=settings.github_client_secret,
+            github_redirect_uri=settings.github_redirect_uri,
+        )
+
+        self.saml_service = SAMLService(
+            storage=self.storage,
+            audit=self.audit,
+            issuer_url=settings.issuer_url,
+        )
 
     async def initialize(self) -> None:
         """Initialize async resources."""

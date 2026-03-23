@@ -205,6 +205,40 @@ def create_oauth_router(deps: AppDependencies, settings: Settings) -> APIRouter:
 
         return await _issue_auth_code(deps, request, oauth_params, user_id)
 
+    @router.get("/authorize/consent-check")
+    async def authorize_consent_check(
+        request: Request,
+    ) -> HTMLResponse | RedirectResponse:
+        """Check consent after social/SAML login and issue code or show consent page."""
+        oauth_params = getattr(request, "session", {}).get("oauth_params")
+        user_id = getattr(request, "session", {}).get("user_id")
+
+        if not oauth_params or not user_id:
+            return RedirectResponse(url="/", status_code=302)
+
+        scopes = oauth_params["scope"].split()
+        has_consent = await deps.consent_service.check_existing_consent(user_id, oauth_params["client_id"], scopes)
+
+        if has_consent:
+            return await _issue_auth_code(deps, request, oauth_params, user_id)
+
+        client = await deps.client_service.get_client(oauth_params["client_id"])
+        client_name = client.name if client else "Unknown"
+        missing_scopes = await deps.consent_service.get_missing_scopes(user_id, oauth_params["client_id"], scopes)
+
+        scope_descriptions = await deps.scope_service.list_scopes()
+        scope_map = {s.name: s.description for s in scope_descriptions}
+
+        templates = request.app.state.templates
+        return templates.TemplateResponse(
+            "consent.html",
+            {
+                "request": request,
+                "client_name": client_name,
+                "scopes": [(s, scope_map.get(s, s)) for s in missing_scopes],
+            },
+        )
+
     @router.post("/token")
     async def token_endpoint(
         grant_type: str = Form(...),

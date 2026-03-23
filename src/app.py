@@ -15,6 +15,7 @@ from dependencies import AppDependencies
 from logging_config import setup_logging
 from routes.admin import create_admin_router
 from routes.auth import create_auth_router
+from routes.federation import create_federation_router
 from routes.health import create_health_router
 from routes.oauth import create_oauth_router
 from routes.oidc import create_oidc_router
@@ -61,6 +62,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(create_auth_router(deps, settings))
     application.include_router(create_oidc_router(deps, settings))
     application.include_router(create_admin_router(deps))
+    application.include_router(create_federation_router(deps, settings))
 
     return application
 
